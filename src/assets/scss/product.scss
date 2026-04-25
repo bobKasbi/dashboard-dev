@@ -1,0 +1,10 @@
+.prod-details {
+    width: 150px;
+    height: auto;
+}
+
+mat-card-content {
+    > p {
+        font-size: 13px;
+    }
+}

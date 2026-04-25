@@ -1,0 +1,42 @@
+profile component
+<br />
+@if (userResource.isLoading()) {
+    <div class="d-flex justify-content-center"><mat-spinner /></div>
+} @else if (userResource.error()) {
+    <div>Failed to load users</div>
+} @else {
+    <!-- <pre>{{ userResource.value() | json }}</pre> -->
+
+    @if (profileForm(); as form) {
+        <form [formGroup]="form">
+            <div class="form-group">
+                @for (field of formFields; track field) {
+                    @if (field.type === 'checkbox') {
+                        <div class="form-check mt-2">
+                            <input
+                                type="checkbox"
+                                class="form-check-input"
+                                [formControlName]="field.name"
+                            />
+                            <label class="form-check-label" for="exampleCheck1">
+                                {{ field.label }}
+                            </label>
+                        </div>
+                    } @else {
+                        <div class="form-group">
+                            <label class="form-label mt-3">
+                                {{ field.label }}
+                            </label>
+                            <input
+                                [type]="field.type"
+                                class="form-control"
+                                [placeholder]="field.placeholder ?? ''"
+                                [formControlName]="field.name"
+                            />
+                        </div>
+                    }
+                }
+            </div>
+        </form>
+    }
+}

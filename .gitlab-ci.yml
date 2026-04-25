@@ -1,0 +1,262 @@
+variables:
+  IMAGE_REPO: "$CI_REGISTRY_IMAGE/main"
+  PROD_IMAGE_REPO: "registry.gitlab.com/bobkasbi/dashboard/main"
+  IMAGE_TAG: ${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
+
+stages:
+  - install
+  - lint
+  - test
+  - e2e
+  - init
+  - build
+  - prepare_values
+  - publish_chart
+  - deploy
+
+include: 'ci/variables/default.yml'
+
+default:
+  image: node:20.18.0-slim
+  before_script:
+    - npm config set registry ${CI_NPM_REGISTRY}
+
+install_dependencies:
+  stage: install
+  retry: 2
+  image: node:20.18.0-slim
+  tags:
+    - local
+  script:
+    - echo "Installing dependencies..."
+    - npm ci --cache .npm --prefer-offline --no-audit --progress=false
+    - echo "Done."
+  cache:
+    policy: pull-push
+    key: npm-${CI_COMMIT_REF_SLUG}
+    paths:
+      - .npm
+      - node_modules
+
+lint:
+  stage: lint
+  retry: 2
+  image: node:20.18.0-slim
+  tags:
+    - local
+  needs:
+    - job: install_dependencies
+  script:
+    - echo "Ensuring dependencies for lint..."
+    - npm ci --cache .npm --prefer-offline --no-audit --progress=false
+    - npm run lint:pipeline
+  except:
+    - tags
+
+test:
+  stage: test
+  retry: 2
+  image: node:20-alpine
+  tags:
+    - local
+  needs:
+    - job: lint
+      optional: true
+    - job: install_dependencies
+  script:
+    - ./ci/scripts/test-app.sh
+  except:
+    - tags
+
+e2e:
+  stage: e2e
+  retry: 2
+  image: node:20-alpine
+  tags:
+    - local
+  needs:
+    - job: test
+      optional: true
+    - job: install_dependencies
+  script:
+    - ./ci/scripts/e2e-test-app.sh
+  except:
+    - tags
+
+ensure_node_docker_image:
+  stage: init
+  image: docker:24.0.2-cli
+  tags:
+    - local
+  before_script:
+    - "echo '[CHECK] Logging into GitLab registry: ${CI_REGISTRY}'"
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
+  script:
+    - "echo '[CHECK] Verifying base image: registry.gitlab.com/bobkasbi/dashboard-dev/node-docker:20.19'"
+    - |
+      if docker manifest inspect registry.gitlab.com/bobkasbi/dashboard-dev/node-docker:20.19 > /dev/null 2>&1; then
+        echo "[CHECK] ✅ node-docker:20.19 already exists — skipping rebuild."
+      else
+        echo "[CHECK] ⚠️ node-docker:20.19 not found — rebuilding..."
+        docker build -t registry.gitlab.com/bobkasbi/dashboard-dev/node-docker:20.19 -f Dockerfile.node-docker .
+        docker push registry.gitlab.com/bobkasbi/dashboard-dev/node-docker:20.19
+        echo "[CHECK] ✅ node-docker:20.19 rebuilt and pushed successfully."
+      fi
+  except:
+    - schedules
+
+build_init_image:
+  stage: init
+  retry: 2
+  image: registry.gitlab.com/bobkasbi/dashboard-dev/node-docker:20.19
+  tags:
+    - local
+  before_script:
+    - "echo '[INIT] Logging into Docker registry: ${CI_REGISTRY}'"
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "${CI_REGISTRY}"
+    - node --version && npm --version && docker --version
+  script:
+    - echo "[INIT] Starting init image build..."
+    - if [ -z "$CI_COMMIT_TAG" ]; then export IMAGE_TAG="$CI_COMMIT_SHORT_SHA"; else export IMAGE_TAG="$CI_COMMIT_TAG"; fi
+    - echo "[INIT] Using IMAGE_TAG=$IMAGE_TAG"
+    - ./ci/scripts/build-app.sh --init-only
+  artifacts:
+    expire_in: "1 hour"
+  needs:
+    - job: ensure_node_docker_image
+  except:
+    - schedules
+
+build:
+  stage: build
+  image: docker:24.0.2-cli
+  tags:
+    - local
+  before_script: []
+  script:
+    - docker version
+    - echo "Logging into GitLab Container Registry..."
+    - echo "$PROD_REGISTRY_PASSWORD" | docker login -u "$PROD_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - echo "CI_REGISTRY=$CI_REGISTRY"
+    - echo "CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE"
+    - echo "IMAGE_REPO=$IMAGE_REPO"
+    - echo "PROD_IMAGE_REPO=$PROD_IMAGE_REPO"
+    - echo "PROD_REGISTRY_USER=$PROD_REGISTRY_USER"
+    - if [ -z "$CI_COMMIT_TAG" ]; then export IMAGE_TAG="$CI_COMMIT_SHORT_SHA"; else export IMAGE_TAG="$CI_COMMIT_TAG"; fi
+    - echo "Using IMAGE_TAG=$IMAGE_TAG"
+    - docker build --build-arg APP_VERSION="$IMAGE_TAG" -t "$IMAGE_REPO:$IMAGE_TAG" .
+    - docker push "$IMAGE_REPO:$IMAGE_TAG"
+
+    # Push to PROD registry (promotion)
+    - docker tag "$IMAGE_REPO:$IMAGE_TAG" "$PROD_IMAGE_REPO:$IMAGE_TAG"
+    - 'echo "DEBUG: Attempting push to $PROD_IMAGE_REPO:$IMAGE_TAG"'
+    - docker push "$PROD_IMAGE_REPO:$IMAGE_TAG"
+
+  artifacts:
+    expire_in: 1h
+  except:
+    - schedules
+
+prepare_values:
+  stage: prepare_values
+  image: alpine:3.20
+  tags:
+    - local
+  before_script: []
+  script:
+    - if [ -z "$CI_COMMIT_TAG" ]; then export IMAGE_TAG="$CI_COMMIT_SHORT_SHA"; else export IMAGE_TAG="$CI_COMMIT_TAG"; fi
+    - echo "[PREPARE_VALUES] Using IMAGE_TAG=$IMAGE_TAG"
+
+    - echo "=== values.yaml BEFORE prepare_values ==="
+    - cat helm/dashboard/values-template.yaml
+
+    - cp helm/dashboard/values-template.yaml helm/dashboard/values.yaml
+
+    - tmpfile="$(mktemp)"
+    - sed "s|__IMAGE_TAG__|${IMAGE_TAG}|g" helm/dashboard/values.yaml > "$tmpfile"
+    - mv "$tmpfile" helm/dashboard/values.yaml
+
+    - echo "=== values.yaml AFTER prepare_values ==="
+    - cat helm/dashboard/values.yaml
+  artifacts:
+    paths:
+      - helm/dashboard/values.yaml
+    expire_in: 1 hour
+  needs:
+    - job: build
+      optional: true
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^\d+\.\d+\.\d+$/'
+      when: on_success
+    - when: never
+
+publish_helm_chart:
+  stage: publish_chart
+  tags:
+    - local
+  image:
+    name: alpine/helm:3.13.3
+    entrypoint: [""]
+  needs:
+    - job: prepare_values
+      artifacts: true
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^\d+\.\d+\.\d+$/'
+      when: on_success
+    - when: never
+  script:
+    - echo "📦 Packaging Helm chart for release ${CI_COMMIT_TAG}..."
+    - helm version
+    - helm dependency update helm/dashboard
+    - helm package helm/dashboard
+    - CHART_FILE=$(ls *.tgz)
+    - echo "🚀 Uploading Helm chart ${CHART_FILE} to GitLab Package Registry..."
+
+    - >
+      curl --request POST
+      --user gitlab-ci-token:$CI_JOB_TOKEN
+      --form "chart=@${CHART_FILE}"
+      https://gitlab.com/api/v4/projects/64576721/packages/helm/api/stable/charts
+
+deploy:
+  stage: deploy
+  needs:
+    - job: prepare_values
+      artifacts: true
+  retry: 2
+  tags:
+    - local
+  image:
+    name: alpine/helm:3.13.3
+    entrypoint: [""]
+  before_script: []
+  script:
+    - echo "$KUBECONFIG_BASE64" | base64 -d > kubeconfig
+    - export KUBECONFIG="$PWD/kubeconfig"
+    - echo "✅ Kubeconfig ready"
+    - helm version
+
+    - kubectl delete secret gitlab-registry-auth -n dev --ignore-not-found
+    - >
+      kubectl create secret docker-registry gitlab-registry-auth
+      --docker-server=registry.gitlab.com
+      --docker-username="$REGISTRY_DEPLOY_USER"
+      --docker-password="$REGISTRY_DEPLOY_PASSWORD"
+      --docker-email="devops@dashboard.local"
+      -n dev
+
+    - |
+      echo "✅ Deploying dashboard-dev to local Minikube..."
+      helm upgrade --install ui-app-dev ./helm/dashboard/ \
+        --values helm/dashboard/values.yaml \
+        --namespace dev \
+        --create-namespace
+
+  when: manual
+  environment:
+    name: dev
+    url: https://dev.dashboard-app.net
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^\d+\.\d+\.\d+$/'
+      when: manual
+    - when: never

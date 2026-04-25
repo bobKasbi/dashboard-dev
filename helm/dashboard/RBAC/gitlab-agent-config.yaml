@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-agent-config
+  namespace: gitlab-agent
+data:
+  config.yaml: |
+    gitlab:
+      agent_id: kubernetes-agent-cluster
+      kas_address: wss://kas.gitlab.com
+    token_file: /config/token

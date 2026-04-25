@@ -1,0 +1,29 @@
+<nav class="border-end bg-light d-flex flex-column transition-all sidebar-fixed" [class.sidebar-collapsed]="!status.expanded()">
+    <!-- Header -->
+    <div class="p-3 fw-semibold text-uppercase small text-secondary">
+        @if (status.expanded()) {
+            <span>Dashboard</span>
+        }
+    </div>
+
+    <ul class="nav nav-pills flex-column mb-auto px-2">
+        @for (el of sideBarLinks; track el) {
+            <li class="nav-item">
+                <a routerLink="{{ el.link }}" routerLinkActive="active" class="nav-link text-start">
+                    {{ el.icon }}
+                    @if (status.expanded()) {
+                        <span class="ms-2">{{ el.linkText }}</span>
+                    }
+                </a>
+            </li>
+        }
+    </ul>
+
+    <!-- Footer -->
+    <div class="mt-auto p-3 small text-secondary">
+        @if (status.expanded()) {
+            <span>build:</span>
+        }
+        <span class="text-body-secondary">[{{ version() }}]</span>
+    </div>
+</nav>

@@ -1,0 +1,43 @@
+.custom-mat-title {
+    font-size: 11px !important;
+    line-height: 13px !important;
+}
+
+.layout-container {
+    display: grid;
+    grid-template-columns: 65% 35%;
+    gap: 2rem;
+    align-items: start;
+}
+.widget-panel {
+    max-width: 94%;
+}
+
+.img-product-shop {
+    width: 40px;
+    height: 40px;
+}
+
+.product-card {
+    max-width: 300px; /* adjust to my taste: 260–320px works best */
+    margin: 0 auto;
+}
+
+.shop-grid {
+    max-width: 980px; /* tweak: 980–1120px until it matches the old look */
+    margin: 20px auto !important; /* centers the grid block and keeps your top/bottom spacing */
+}
+
+@media screen and (max-width: 600px) {
+    .card-mobile {
+        width: 100% !important;
+    }
+}
+
+@media screen and (max-width: 920px) {
+    .layout-container {
+        display: block;
+        gap: 1rem;
+        width: 100% !important;
+    }
+}

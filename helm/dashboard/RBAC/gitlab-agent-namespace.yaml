@@ -1,0 +1,5 @@
+# kubernetes/gitlab-agent-namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitlab-agent

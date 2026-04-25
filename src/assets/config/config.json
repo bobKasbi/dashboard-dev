@@ -1,0 +1,13 @@
+{
+    "environment": "dev",
+    "apiBaseUrl": "https://api.dev.dashboard-app.net/api",
+    "auth": {
+        "enabled": true,
+        "authority": "https://keycloak.app-auth.net",
+        "realm": "dashboard-dev",
+        "clientId": "dashboard-ui-dev"
+    },
+    "BG_COLOR": "#12181b",
+    "FONT_COLOR": "#dfdfdf",
+    "CUSTOM_HEADER": "Customized with a configmap! DEV DEV"
+}

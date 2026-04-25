@@ -1,0 +1,64 @@
+<ng-template #statusHeader>Status 🔽</ng-template>
+
+<div class="custom-table-wrapper">
+    <table class="custom-table">
+        <thead
+            app-table-head
+            [columns]="columns()"
+            [sortKey]="sortKeyValue()"
+            [sortDirection]="sortDirectionValue()"
+            [columnTemplates]="{ status: statusHeader }"
+            (sort)="sortBy($event)"
+        ></thead>
+
+        <tbody>
+            @if (paginatedData().length > 0) {
+                @for (row of paginatedData(); track row.id) {
+                    <tr>
+                        <td class="termin-cell">
+                            <div class="date">{{ row.date | date: 'EEE, dd.MM.yyyy' }}</div>
+                            <div class="time">{{ row.time }}</div>
+                        </td>
+                        <td>{{ row.therapist }}</td>
+                        <td>
+                            @if (row.status === 'confirmed') {
+                                <span class="status-icon">✔</span>
+                            }
+                            <span class="status-text">{{ row.status }}</span>
+                        </td>
+                        <td>
+                            <button (click)="onAction(row)" class="action-button">⋯</button>
+                        </td>
+                    </tr>
+                }
+            } @else {
+                <tr>
+                    <td attr.colspan="{{ colCount() }}" class="no-data">Keine Daten verfügbar</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="pagination-controls">
+        <div class="page-size">
+            <label>Zeilen:</label>
+            <select [ngModel]="pageSizeValue()" (ngModelChange)="setPageSizeValue($event)">
+                @for (size of pageSizeOptions(); track size) {
+                    <option [value]="size">{{ size }}</option>
+                }
+            </select>
+        </div>
+
+        <div class="page-nav">
+            <button (click)="prevPage()" [disabled]="currentPage === 1">◀</button>
+            @if (paginationRange().length > 0) {
+                @for (page of paginationRange(); track page) {
+                    <button (click)="goToPage(page)" [class.active]="page === currentPage">Page: {{ page }}</button>
+                }
+            } @else {
+                <span>No pages to display</span>
+            }
+            <button (click)="nextPage()" [disabled]="currentPage === totalPages">▶</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,21 @@
+:host th {
+    background-color: #f0f2f5;
+    font-weight: bold;
+    padding: 16px 20px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+    cursor: pointer;
+}
+
+:host .sort-icons {
+    margin-left: 6px;
+    font-size: 11px;
+    display: inline-flex;
+    flex-direction: column;
+    color: #888;
+
+    .active {
+        color: #007bff;
+        font-weight: bold;
+    }
+}

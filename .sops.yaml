@@ -1,0 +1,8 @@
+# SOPS config — encrypt k8s Secret manifests and *values.sops.yaml
+creation_rules:
+  - path_regex: '(secrets/.*\.ya?ml|.*values\.sops\.ya?ml)$'
+    # For Kubernetes Secrets: only encrypt these fields
+    encrypted_regex: '^(data|stringData)$'
+    key_groups:
+      - age:
+          - age15zcnnd23pszetpkd5cxjy3mm96qzr7fcajspxh346e2lqr3m5p6q2jmrta

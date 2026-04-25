@@ -1,0 +1,73 @@
+@if (configData(); as headerData) {
+    <div>🚀 {{ headerData.CUSTOM_HEADER }}</div>
+}
+
+<section class="w-100">
+    @if (prodSignal()) {
+        <div class="layout-container mx-3 my-3 ps-0">
+            <div
+                class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 g-2 pe-1"
+            >
+                @for (product of paginatedProducts(); track product?.id) {
+                    <div class="col card-mobile">
+                        <mat-card
+                            class="product-card rounded border-secondary h-100"
+                            data-testid="shop-product-card"
+                        >
+                            <mat-card-header class="h-75">
+                                <mat-card-title-group>
+                                    <mat-card-title
+                                        class="text-success custom-mat-title pe-2"
+                                    >
+                                        {{ product?.title }}
+                                    </mat-card-title>
+                                    <img
+                                        [src]="product?.image"
+                                        class="img-product-shop"
+                                    />
+                                </mat-card-title-group>
+                            </mat-card-header>
+                            <mat-card-actions class="justify-content-end my-3">
+                                <button
+                                    class="btn btn-primary"
+                                    (click)="prodDescription(product?.id)"
+                                    data-testid="button-details"
+                                >
+                                    Details
+                                </button>
+                            </mat-card-actions>
+                        </mat-card>
+                    </div>
+                }
+
+                <div
+                    class="d-flex justify-content-center mt-2 clearfix float-start w-100"
+                >
+                    <app-pagination
+                        [totalItems]="prodSignal()?.length ?? 0"
+                        [pageSize]="12"
+                        [(page)]="currentPage"
+                    />
+                </div>
+            </div>
+
+            <div
+                class="widget-panel d-none d-lg-block d-flex flex-column p-2 mt-n2"
+                data-testid="widgets-wrapper"
+            >
+                <div class="border rounded p-3" data-testid="activity-widget">
+                    <ng-container #activity />
+                </div>
+
+                <div
+                    class="border rounded mt-2 p-3"
+                    data-testid="filters-widget"
+                >
+                    <ng-container #filters />
+                </div>
+            </div>
+
+            <ng-container>{{ widgetsReady() }}</ng-container>
+        </div>
+    }
+</section>

@@ -1,0 +1,14 @@
+{
+    "environment": "local",
+    "apiBaseUrl": "/api",
+    "auth": {
+        "enabled": true,
+        "authority": "https://keycloak.app-auth.net",
+        "realm": "dashboard-dev",
+        "clientId": "dashboard-ui-dev"
+    },
+    "BG_COLOR": "#12181b",
+    "FONT_COLOR": "#dfdfdf",
+    "CUSTOM_HEADER": "Local config",
+    "TEST": "TEST"
+}

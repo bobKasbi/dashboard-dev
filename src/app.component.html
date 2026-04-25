@@ -1,0 +1,34 @@
+<!-- BLUE HEADER BAR (full width) -->
+<div class="wrapper-global h-100">
+    <app-header-bar />
+
+    <!-- Mobile drawer -->
+
+    <div class="mobile-sidebar d-md-none" [class.open]="sidebar.status.mobile()">
+        <app-sidebar />
+    </div>
+    @if (sidebar.status.mobile()) {
+        <div class="mobile-backdrop d-md-none" (click)="closeMobile()"></div>
+    }
+
+    <!-- MAIN LAYOUT -->
+    <div class="container-fluid h-100">
+        <div class="row g-0 h-100 mt-1">
+            <!-- Desktop sidebar -->
+            <aside class="col-auto px-0 d-none d-md-block float-start mt-5 h-100" [hidden]="sidebar.status.mobile()">
+                <app-sidebar />
+            </aside>
+
+            <!-- Main area -->
+            <main class="col main-content" [class.main-content-collapsed]="!sidebar.status.expanded()">
+                <div class="d-flex mx-3 my-3">
+                    <!-- LEFT: main content -->
+                    <div class="flex-grow-1">
+                        <router-outlet />
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<app-footer />

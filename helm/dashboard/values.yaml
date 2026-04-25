@@ -1,0 +1,23 @@
+service:
+  type: ClusterIP
+  port: 80
+
+image:
+  repository: registry.gitlab.com/bobkasbi/dashboard-dev/main
+  tag: v1.0.12
+  pullPolicy: IfNotPresent
+
+initContainer:
+  enabled: true
+  repository: registry.gitlab.com/bobkasbi/dashboard-dev/init
+  tag: "00280b9c"            # latest existing tag from your screenshot
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: gitlab-registry-auth
+
+ingress:
+  enabled: true
+  host: dev.dashboard-app.net
+
+configmapName: myconfigmapv1.0-dev

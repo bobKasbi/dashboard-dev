@@ -1,0 +1,76 @@
+.mobile-sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 260px;
+    height: 100vh;
+    background: #fff;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    transition: left 0.25s ease;
+    z-index: 1040; // above content
+}
+
+.mobile-sidebar.open {
+    left: 0;
+}
+
+.mobile-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1030;
+}
+
+app-header-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1100; /* above sidebar */
+}
+
+/* FIXED SIDEBAR LEFT, FULL HEIGHT BELOW FIXED HEADER */
+.sidebar-navi {
+    margin-top: 68px; /* height of header */
+    bottom: 0;
+    left: 0;
+    width: 260px;
+    overflow-y: auto;
+    z-index: 1500;
+    height: 100%;
+}
+
+/* Shift content to the right so it doesn't sit behind sidebar */
+.main-content {
+    margin-left: 260px; /* same width as sidebar */
+    margin-top: 68px;
+    width: auto; /* same height as header */
+}
+
+/* When sidebar is collapsed to icon-only width */
+.main-content.main-content-collapsed {
+    margin-left: 80px;
+}
+
+/* Mobile: restore normal flow */
+@media (max-width: 767.98px) {
+    .main-content {
+        margin-left: 0;
+        padding-top: 68px;
+    }
+}
+
+/* DESKTOP MODE - force mobile sidebar hidden */
+@media (min-width: 768px) {
+    .mobile-sidebar {
+        left: -260px; /* closed always on desktop */
+    }
+
+    .mobile-backdrop {
+        display: none;
+    }
+}
+
+.mobile-sidebar.d-md-none {
+    left: -260px !important;
+}

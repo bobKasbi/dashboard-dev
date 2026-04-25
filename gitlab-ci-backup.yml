@@ -1,0 +1,119 @@
+stages:
+  - install
+  - test
+  - build
+  - deploy
+
+include: 'ci/variables/default.yml'
+
+default:
+  image: node:20.18.0-slim
+  before_script:
+    - npm config set registry ${CI_NPM_REGISTRY}
+
+install_dependencies:
+  stage: install
+  retry: 2
+  image: node:20.18.0-slim
+  tags:
+    - ci
+  script:
+    - echo "Installing dependencies..."
+    - npm ci --cache .npm --prefer-offline
+    - echo "Done."
+  cache:
+    key: default-6-non_protected
+    paths:
+      - .npm
+      - node_modules
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 day
+    when: on_success
+
+test_app:
+  stage: test
+  retry: 2
+  image: node:20.18.0-slim
+  tags:
+    - ci
+  dependencies:
+    - install_dependencies
+  script:
+    - npm run test -- --watch=false --browsers=ChromeHeadless
+  artifacts:
+    paths:
+      - test-results/junit.xml
+    reports:
+      junit: test-results/junit.xml
+    expire_in: 1 day
+
+
+
+build_app:
+  stage: build
+  retry: 2
+  image: docker:24.0.2-cli
+  tags:
+    - build
+  services:
+    - docker:24.0.2-dind
+  before_script:
+    - "echo '[BUILD] Logging into Docker registry: $CI_REGISTRY'"
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - "echo \"[BUILD] Starting Docker build for: $CI_REGISTRY_IMAGE/sinc-shop-deployment:$CI_COMMIT_SHORT_SHA\""
+    - docker build --pull -t "$CI_REGISTRY_IMAGE/sinc-shop-deployment:$CI_COMMIT_SHORT_SHA" .
+    - "echo \"[BUILD] Pushing Docker image...\""
+    - docker push "$CI_REGISTRY_IMAGE/sinc-shop-deployment:$CI_COMMIT_SHORT_SHA"
+    - "echo \"[BUILD] Running custom test script...\""
+    - chmod +x "$CI_PROJECT_DIR/ci/scripts/test-script.sh"
+    - $CI_PROJECT_DIR/ci/scripts/test-script.sh VARIABLE_A VARIABLE_B
+    - "echo \"[BUILD] Docker image built and pushed: $CI_REGISTRY_IMAGE/sinc-shop-deployment:$CI_COMMIT_SHORT_SHA\""
+  rules:
+    # ✅ Only run on main, tags, or wip branches
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH =~ /^wip-.*$/'
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+    # ❌ Skip all others
+    - when: never
+
+## ✅ 2. Add Release Tag Workflow (Optional)
+
+#This lets you trigger a deployment **only when you push a Git tag** like v1.2.0, instead of merging into main.
+
+### 🔧 Step-by-step: Add tag-based deployment rule
+
+# In .gitlab-ci.yml, update your deploy_prod job like this:
+
+deploy_prod:
+  stage: deploy
+  retry: 2
+  tags:
+    - demo_job_1
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  script:
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG" > ~/.kube/config
+    - "echo 'Using Kubernetes context: minikube'"
+    - kubectl config get-contexts
+    - kubectl config use-context minikube
+    - "echo 'Current directory: $(pwd)'"
+    - ls -la kubernetes/
+    - head -20 kubernetes/deployment.yaml
+    - sed -i '' "s/<VERSION>/${CI_COMMIT_SHORT_SHA}/g" kubernetes/deployment.yaml
+    - kubectl apply -f kubernetes/deployment.yaml
+  environment:
+    name: production
+    url: http://localhost:4200
+    kubernetes:
+      namespace: default
+  rules:
+    # Auto-deploy if a version tag is pushed
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+    # Manual deploy button after merge to main
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual

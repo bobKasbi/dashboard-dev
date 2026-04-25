@@ -1,0 +1,20 @@
+<mat-card class="w-50 m-auto border-secondary border rounded mt-5">
+    <mat-card-header>
+        <mat-card-title class="justify-content-start">{{ productService.selectedProduct()?.title }}</mat-card-title>
+    </mat-card-header>
+    <div class="py-3" style="text-align: center">
+        <img [src]="productService.selectedProduct()?.image" class="prod-details" />
+        <span class="ms-3 text-secondary">
+            {{ productService.selectedProduct()?.price }}
+            <small>Euro</small>
+        </span>
+    </div>
+    <mat-card-content>
+        <p>
+            {{ productService.selectedProduct()?.description }}
+        </p>
+    </mat-card-content>
+    <div class="justify-content-end border px-3 py-2 mt-4">
+        <button class="btn btn-primary float-end" (click)="addToCart(productService.selectedProduct())">Buy</button>
+    </div>
+</mat-card>

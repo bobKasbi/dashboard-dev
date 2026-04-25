@@ -1,0 +1,46 @@
+<form [formGroup]="userForm">
+    @for (field of userFields; track field.name) {
+        <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+
+            @if (field.type === 'checkbox') {
+                <input
+                    type="checkbox"
+                    class="form-check-input"
+                    [class.border-danger]="userForm.get(field.name)?.invalid && userForm.get(field.name)?.touched"
+                    [formControlName]="field.name"
+                />
+            } @else {
+                <input
+                    [type]="field.type"
+                    class="form-control"
+                    [placeholder]="field.placeholder ?? ''"
+                    [class.border-danger]="userForm.get(field.name)?.invalid && userForm.get(field.name)?.touched"
+                    [formControlName]="field.name"
+                />
+            }
+
+            <!-- Validation messages -->
+            @if (userForm.get(field.name)?.touched && userForm.get(field.name)?.invalid) {
+                <p class="text-danger small">
+                    @if (userForm.get(field.name)?.errors?.['required']) {
+                        This field is required.
+                    }
+                    @if (userForm.get(field.name)?.errors?.['email']) {
+                        Invalid email format.
+                    }
+                    <!-- you can add more here -->
+                </p>
+            }
+        </div>
+    }
+
+    <div class="btn-group mt-3">
+        <button type="button" class="btn btn-success rounded" (click)="createUser(userForm.value)">Add user</button>
+
+        <button type="button" class="btn btn-outline-secondary rounded ms-3">Cancel</button>
+    </div>
+</form>
+<br />
+<br />
+<pre>{{ userForm.value | json }}</pre>

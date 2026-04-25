@@ -1,0 +1,28 @@
+# ---- Angular build artifacts ----
+dist/
+build/
+builds/
+.angular/
+node_modules/
+.tmp/
+coverage/
+
+angular.json
+package.json
+package-lock.json
+jest.config.ts
+setup-jest.ts
+playwright-report/
+test-results/
+.vscode/
+.prettierignore
+
+# ---- CI / DevOps / Infrastructure (never format) ----
+*.yaml
+*.yml
+
+ci/**
+scripts/**
+secrets/**
+charts/**
+

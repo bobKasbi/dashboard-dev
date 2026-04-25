@@ -1,0 +1,55 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+nav {
+    width: 260px;
+    height: 100%;
+    transition: width 0.25s ease;
+}
+
+nav.sidebar-collapsed {
+    width: 80px !important;
+}
+
+nav.sidebar-collapsed .nav-link {
+    text-align: center;
+}
+
+nav.sidebar-collapsed .nav-link span {
+    display: none;
+}
+
+nav.sidebar-collapsed div.p-3 span {
+    display: none;
+}
+
+.sidebar-sticky {
+    position: sticky;
+    top: 68px; // below the header
+    height: calc(100vh - 68px);
+    overflow-y: auto;
+}
+
+/* default: for mobile drawer – parent (.mobile-sidebar) controls position */
+.sidebar-fixed {
+    position: static;
+    top: auto;
+    left: auto;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* desktop: fixed sidebar under header */
+@media (min-width: 768px) {
+    .sidebar-fixed {
+        position: fixed;
+        top: 68px; // below header
+        left: 0;
+        width: 260px;
+        height: calc(100vh - 68px);
+        overflow-y: auto;
+    }
+}

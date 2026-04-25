@@ -1,0 +1,51 @@
+# ✅ Why do use and need this file? is it necessary?
+
+# ONLY if we want dynamic values (image repo, tag, etc.) injected by CI.
+# If we remove the copy, our Helm chart will always deploy old + static values.
+
+# So:
+
+# ✅ Necessary if we want CI-controlled values
+# ❌ Not necessary if we want static values and no placeholder replacement
+
+# ✅ Relation between values-template.yaml and values.yaml:
+
+# values-template.yaml:
+# = contains placeholders
+# = is processed by CI
+# = is NOT used by Helm directly
+
+# values.yaml:
+# = final file after CI replaces placeholders
+# = this file is used by Helm during deploy
+# = ALWAYS overwrites the one in the repo
+
+# ✅ Summary:
+
+# values-template.yaml → source
+# CI copies it → replaces values. This happens in gitlab-ci.yaml
+# → becomes final values.yaml used by Helm
+# If values-template.yaml is missing a property e.g. configmanName, the final values.yaml will also miss it.
+
+# Template used by CI to generate final Helm values.yaml
+
+service:
+  type: ClusterIP
+  port: 80
+
+image:
+  repository: registry.gitlab.com/bobkasbi/dashboard-dev/main
+  tag: "__IMAGE_TAG__"
+  pullPolicy: IfNotPresent
+
+initContainer:
+  enabled: true
+  repository: registry.gitlab.com/bobkasbi/dashboard-dev/init
+  tag: "__IMAGE_TAG__"
+  pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  host: dev.dashboard-app.net
+
+configmapName: myconfigmapv1.0-dev

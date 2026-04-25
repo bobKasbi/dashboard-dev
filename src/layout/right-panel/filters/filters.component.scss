@@ -1,0 +1,23 @@
+.widget {
+    background: white;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.widget-header {
+    border-bottom: 1px solid #e6e6e6;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+h4 {
+    font-size: 1rem;
+    margin: 0;
+    font-weight: 600;
+}
+
+.widget-body {
+    font-size: 0.875rem;
+    color: #444;
+}

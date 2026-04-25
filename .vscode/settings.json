@@ -1,0 +1,24 @@
+{
+    "eslint.enable": true,
+    "eslint.useFlatConfig": true,
+    "eslint.run": "onType",
+    "eslint.validate": ["typescript", "javascript", "scss", "html"],
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    // prevent formatters and eslint from touching files while conflicts exist
+    "[merge-conflict]": {
+        "editor.formatOnSave": false,
+        "editor.codeActionsOnSave": {}
+    },
+
+    // enable proper merge editor UI instead of inline editing
+    "git.mergeEditor": true,
+    "mergeEditor.showBaseChanges": false,
+    "mergeEditor.autoMergeDecorations": false,
+    "merge-conflict.autoNavigateNextConflict.enabled": false,
+    "files.autoSave": "off"
+
+}

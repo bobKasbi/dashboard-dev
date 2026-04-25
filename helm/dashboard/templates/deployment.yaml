@@ -1,0 +1,108 @@
+# Deployment – Version Injection (Documented)
+
+# Below is your **exact deployment configuration**, unchanged in logic or structure.
+# Only **comments** were added to explain how and why the build version injection 
+# works, so future-you (or teammates) can immediately understand it.
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dashboard-dev.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+
+    spec:
+      imagePullSecrets:
+        - name: gitlab-registry-auth
+      
+      # Shared volume used between initContainer and main container.
+      # This is where the Angular build output lives and gets modified.
+      volumes:
+        - name: dashboard-dist
+          emptyDir: {}
+      
+      initContainers:
+        - name: dashboard-init
+          image: "{{ .Values.initContainer.repository }}:{{ .Values.initContainer.tag }}"
+          imagePullPolicy: {{ .Values.initContainer.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              # Copies the Angular build output from the image build layer
+              # into the shared volume so nginx can serve it later.
+              echo "Copying built dist files from browser folder..."
+              if [ -d /dist/sinc-shop/browser ]; then
+                cp -r /dist/sinc-shop/browser/* /data/
+              else
+                echo "❌ /dist/sinc-shop/browser not found!"
+                ls -l /dist/sinc-shop || true
+              fi
+
+              # 🔧 VERSION INJECTION STEP
+              # Replaces the placeholder string __APP_VERSION__ inside all JS bundles
+              # with the actual image tag (e.g. v2.0.3).
+              #
+              # Why this exists:
+              # Angular build contains a hardcoded placeholder which must be replaced
+              # at runtime so the UI can display the real deployed version.
+              #
+              # Why `find` is used instead of *.js glob:
+              # JS files might not exist yet at shell expansion time, so find ensures
+              # they are discovered dynamically and always processed.
+              echo "Injecting build version..."
+              # Find all JS files in the Angular build, and inside each one, replace 
+              # # the placeholder __APP_VERSION__ with the current Docker image tag used for this deployment
+              # ----------------
+              # sed = stream editor (text replacement tool)
+              # -i = modify the file in place
+              # s/OLD/NEW/g = substitute OLD with NEW globally
+              # ----------------
+              find /usr/share/nginx/html -name "*.js" -exec sed -i "s/__APP_VERSION__/{{ .Values.image.tag }}/g" {} +
+
+          volumeMounts:
+            # First mount: location where build files are copied into
+            - name: dashboard-dist
+              mountPath: /data
+            
+            # Second mount: actual path served by nginx
+            # This ensures version replacement affects the real files used by the UI
+            - name: dashboard-dist
+              mountPath: /usr/share/nginx/html
+
+      containers:
+        - name: {{ include "dashboard-dev.fullname" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          ports:
+            - containerPort: 80
+
+          # nginx serves files from this directory.
+          # Because this path shares the same volume as the initContainer,
+          # it receives the already-version-injected JS bundles.
+          volumeMounts:
+            - name: dashboard-dist
+              mountPath: /usr/share/nginx/html
+
+
+## Concept summary (memory refresher)
+
+# ✅ Angular build ships with `__APP_VERSION__` placeholder
+# ✅ initContainer replaces it with real tag (e.g. v2.0.3)
+# ✅ nginx serves already-modified files
+# ✅ Footer + Sidebar display live version correctly
